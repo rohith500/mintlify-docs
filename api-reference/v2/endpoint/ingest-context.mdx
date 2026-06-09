@@ -226,6 +226,7 @@ curl -X POST 'https://api.hydradb.com/context/ingest' \
 | <Field name="document_metadata" type="string (JSON array)" /> | One entry per file in `documents`, in the same order. If omitted, documents index with inferred defaults such as filename/title. See the item shape below. |
 | <Field name="app_knowledge" type="string (JSON object or array)" /> | Pre-extracted source objects (Slack, Notion, web pages, etc.), **knowledge only**. See the `app_knowledge` item shape below. |
 | <Field name="memories" type="string (JSON array)" /> | Memory items, **memory only**. Required and non-empty when `type=memory`. Use plural `memories` for the form field, even though `type` is singular `memory`. See the `memories` item shape below. |
+| <Field name="graph_payload" type="string (JSON object)" /> | Optional custom knowledge graph to attach to the document, **knowledge only**. When provided, HydraDB uses your graph instead of extracting one automatically. Requires exactly one document and cannot be combined with `app_knowledge`. See [Custom graph ingestion](#custom-graph-ingestion) below. |
 
 ## Common use-cases and their configurations
 
@@ -506,6 +507,140 @@ Per-document metadata (`id`, `metadata`, `additional_metadata`, `title`, etc.) c
   ```
 
   </CodeGroup>
+</Accordion>
+
+## Custom graph ingestion
+
+Use `graph_payload` to supply your own knowledge graph instead of relying on automatic extraction. Helpful when you have pre-existing structured relationships or need precise control over entity and relation representation.
+
+<Accordion title="5. Custom graph - supply your own entities and relations">
+  <CodeGroup>
+
+  ```python Python SDK
+  import json
+
+  with open("/path/to/document.pdf", "rb") as doc:
+      result = client.context.ingest(
+          type="knowledge",
+          tenant_id="acme_corp",
+          sub_tenant_id="team_docs",
+          documents=[("document.pdf", doc, "application/pdf")],
+          graph_payload=json.dumps({
+              "entities": {
+                  "e1": {"name": "John Doe", "type": "PERSON", "namespace": "employees"},
+                  "e2": {"name": "Acme Corp", "type": "ORGANIZATION", "namespace": "organizations"}
+              },
+              "relations": [
+                  {
+                      "source": "e1",
+                      "target": "e2",
+                      "predicate": "WORKS_FOR",
+                      "context": "John Doe leads the payments team at Acme Corp."
+                  }
+              ]
+          }),
+      )
+  ```
+
+  ```typescript TypeScript SDK
+  const result = await client.context.ingest({
+    type: "knowledge",
+    tenantId: "acme_corp",
+    subTenantId: "team_docs",
+    documents: [
+      { path: "/path/to/document.pdf", filename: "document.pdf", contentType: "application/pdf" },
+    ],
+    graphPayload: JSON.stringify({
+      entities: {
+        e1: { name: "John Doe", type: "PERSON", namespace: "employees" },
+        e2: { name: "Acme Corp", type: "ORGANIZATION", namespace: "organizations" },
+      },
+      relations: [
+        {
+          source: "e1",
+          target: "e2",
+          predicate: "WORKS_FOR",
+          context: "John Doe leads the payments team at Acme Corp.",
+        },
+      ],
+    }),
+  });
+  ```
+
+  ```bash cURL
+  curl -X POST 'https://api.hydradb.com/context/ingest' \
+    -H "Authorization: Bearer <your_api_key>" \
+    -H "API-Version: 2" \
+    -F "type=knowledge" \
+    -F "tenant_id=acme_corp" \
+    -F "sub_tenant_id=team_docs" \
+    -F "documents=@/path/to/document.pdf" \
+    -F 'graph_payload={
+      "entities": {
+        "e1": { "name": "John Doe", "type": "PERSON", "namespace": "employees" },
+        "e2": { "name": "Acme Corp", "type": "ORGANIZATION", "namespace": "organizations" }
+      },
+      "relations": [
+        {
+          "source": "e1",
+          "target": "e2",
+          "predicate": "WORKS_FOR",
+          "context": "John Doe leads the payments team at Acme Corp."
+        }
+      ]
+    }'
+  ```
+
+  </CodeGroup>
+
+  ### `graph_payload` structure
+
+  | Field | Description |
+  | --- | --- |
+  | <Field name="entities" type="object" required /> | Map of entity keys to entity objects. Keys are local identifiers used to reference entities in `relations`. |
+  | <Field name="relations" type="array" required /> | Array of relation objects connecting entities. |
+
+  ### Entity object
+
+  | Field | Description |
+  | --- | --- |
+  | <Field name="name" type="string" required /> | Entity name. Max 256 characters. |
+  | <Field name="type" type="string" /> | Entity type (e.g., `"PERSON"`, `"ORGANIZATION"`, `"PRODUCT"`). Max 256 characters. |
+  | <Field name="namespace" type="string" /> | Logical grouping for the entity. Max 256 characters. |
+  | <Field name="identifier" type="string" /> | Optional external identifier (e.g., a URL or database ID). |
+
+  ### Relation object
+
+  | Field | Description |
+  | --- | --- |
+  | <Field name="source" type="string" required /> | Key of the source entity in the `entities` map. |
+  | <Field name="target" type="string" required /> | Key of the target entity in the `entities` map. |
+  | <Field name="predicate" type="string" required /> | Relationship type (e.g., `"WORKS_FOR"`, `"MENTORS"`, `"DEPENDS_ON"`). Max 256 characters. |
+  | <Field name="context" type="string" /> | Contextual description of the relationship. Max 2000 characters. |
+
+  ### Constraints
+
+  - **Single document only.** `graph_payload` requires exactly one document. Multi-document uploads are not supported.
+  - **Cannot combine with `app_knowledge`.** Use either `graph_payload` with `documents` or `app_knowledge` alone.
+  - **Non-empty graph required.** Both `entities` and `relations` must have at least one entry.
+  - **Referential integrity.** All `source` and `target` values in relations must reference keys declared in `entities`.
+
+  ### Limits
+
+  | Limit | Value |
+  | --- | --- |
+  | Max entities | 5,000 |
+  | Max relations | 10,000 |
+  | Max relations per entity | 500 |
+  | Entity name/type/namespace max length | 256 characters |
+  | Predicate max length | 256 characters |
+  | Context max length | 2,000 characters |
+
+  ### Behavior
+
+  - The supplied graph **replaces** automatic extraction for this document.
+  - The graph is stored durably and survives document re-ingestion—if you re-upload the same document without `graph_payload`, the original graph remains intact.
+  - Graph relationships surface in query responses when `graph_context=true`.
 </Accordion>
 
 ## Some important notes
