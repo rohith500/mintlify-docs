@@ -622,7 +622,11 @@ A zero-result query returns empty arrays/maps rather than an error, as shown in 
 
 ## Errors
 
-Common codes: `400 INVALID_PARAMETERS` (empty `query`), `404 TENANT_NOT_FOUND`, `422 VALIDATION_ERROR`, `500 INTERNAL_ERROR`. See [Error Responses](/api-reference/v2/error-responses) for the full list.
+Common codes: `400 INVALID_PARAMETERS` (empty `query`), `404 TENANT_NOT_FOUND`, `422 VALIDATION_ERROR`, `429 RATE_LIMITED`, `500 INTERNAL_ERROR`. See [Error Responses](/api-reference/v2/error-responses) for the full list.
+
+<Note>
+Query endpoints may enforce per-API-key rate limits. When exceeded, the API returns HTTP 429 with a message indicating the limit (e.g., "Query rate limit exceeded: max 120 requests per minute"). Use exponential backoff for retries.
+</Note>
 
 <div className="api-before-related-resources" />
 

@@ -121,4 +121,8 @@ Same shape as [`POST /recall/full_recall`](/api-reference/endpoint/full-recall#r
 
 Common codes: `400 INVALID_PARAMETERS`, `404 TENANT_NOT_FOUND`, `422 VALIDATION_ERROR`, `429 RATE_LIMITED`. See [Error Responses](/api-reference/error-responses) for the full list.
 
+<Note>
+Recall endpoints may enforce per-API-key rate limits. When exceeded, the API returns HTTP 429 with a message indicating the limit (e.g., "Query rate limit exceeded: max 120 requests per minute"). Use exponential backoff for retries.
+</Note>
+
 Read more: [Essentials → Recall](/essentials/recall)
