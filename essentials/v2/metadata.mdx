@@ -69,9 +69,42 @@ Sent on [`POST /query`](/api-reference/v2/endpoint/query). Two scopes in the sam
 
 ---
 
-## 3. Tuning heuristics
+## 3. Schema validation constraints
 
-Most of the time the defaults are right. When they aren't, here's where to start:
+The API validates `tenant_metadata_schema` at tenant creation and rejects invalid schemas with descriptive errors. Knowing these constraints upfront saves a round-trip.
+
+### Field name rules
+
+| Constraint | Limit | Notes |
+| --- | --- | --- |
+| Pattern | `[A-Za-z_][A-Za-z0-9_]*` | Must start with a letter or underscore; only letters, numbers, and underscores allowed. No spaces or special characters. |
+| Max length | 255 characters | Field names exceeding this limit are rejected. |
+
+### Reserved field names
+
+These names are used internally and cannot be used as custom metadata field names:
+
+<Accordion title="Reserved field names">
+`base_metadata`, `chunk_content`, `chunk_content_embedding`, `chunk_content_sparse`, `chunk_id`, `description`, `description_embedding`, `document_metadata`, `document_metadata_embedding`, `embedding`, `inferred_content`, `inferred_content_embedding`, `layout`, `metadata`, `source_collaborator`, `source_collection`, `source_id`, `source_last_updated_time`, `source_owner`, `source_title`, `source_type`, `source_upload_time`, `source_url`, `sub_tenant_id`
+</Accordion>
+
+Field names that would generate conflicting derived fields are rejected. For example, `chunk_content` would generate `chunk_content_embedding`, which conflicts with a reserved name.
+
+### Size limits
+
+| Resource | Limit |
+| --- | --- |
+| `tenant_id` | 255 characters max |
+| Custom fields per tenant | 32 fields max |
+| `max_length` for VARCHAR fields | 1–65,535 (default: 1,024) |
+
+This limit includes the base schema plus derived fields (up to 3 per searchable field) that HydraDB generates internally.
+
+---
+
+## 4. Tuning heuristics
+
+Most of the time the defaults work. When they aren't, here's where to start:
 
 - **Plan scoping fields before first ingest.** Schema is immutable, and undeclared scope keys are silently ignored at query time. If you'll scope on it more than once, declare it.
 - **Pick `metadata` for hot paths, `additional_metadata` for cold ones.** Tenant-level scopes are pre-applied in the vector store; document-level scopes force a post-retrieval pass with over-fetch.
@@ -82,7 +115,7 @@ Most of the time the defaults are right. When they aren't, here's where to start
 
 ---
 
-## 4. Minimal working example
+## 5. Minimal working example
 
 Two phases: **set up metadata** (declare the schema, then attach values at ingest), then **scope at query**.
 
@@ -260,7 +293,7 @@ Top-level `compliance_framework` is the fast scope, applied in the vector store 
 
 ---
 
-## 5. Common mistakes
+## 6. Common mistakes
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
@@ -272,10 +305,11 @@ Top-level `compliance_framework` is the fast scope, applied in the vector store 
 | Range / contains / fuzzy scope doesn't work | `metadata_filters` is equality-only | Move that constraint into the `query` text, use a different `query_by`, or apply it in your own post-scoping. |
 | Fields used in `metadata` but missing from response objects | Field declared as embedding-only without `enable_match` | Embedding-enabled doesn't imply scoping-enabled. Add `enable_match: true` to use it in `metadata_filters`. |
 | `additional_metadata` scope feels slow | It is  -  over-fetches ~3× to compensate for post-retrieval matching | Move the hot field into `metadata` and declare it in the schema. |
+| Tenant creation fails with "reserved" or "invalid field name" error | Field name uses a reserved system name or invalid characters | Use a different field name. See [Schema validation constraints](#3-schema-validation-constraints) for the full list of reserved names and naming rules. |
 
 ---
 
-## 6. Advanced patterns
+## 7. Advanced patterns
 
 **Stacked scopes with sub-tenant partitioning.** Use `sub_tenant_id` for the partition (per-user, per-workspace), and use `metadata_filters` to scope *inside* that partition. They're complementary, not interchangeable. See [Multi-Tenant](/essentials/v2/multi-tenant).
 
