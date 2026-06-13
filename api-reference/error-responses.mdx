@@ -34,8 +34,8 @@ Always read `detail.message` and `detail.error_code` for the actual error contex
 | `200` | OK | Success |
 | `202` | Accepted | Async operation queued (tenant creation, ingestion) |
 | `400` | Bad Request | Invalid input parameters |
-| `401` | Unauthorized | Missing or invalid API key |
-| `403` | Forbidden | Authenticated, but lacks permission |
+| `401` | Unauthorized | Missing or malformed `Authorization` header |
+| `403` | Forbidden | Invalid, revoked, or unauthorized API key |
 | `404` | Not Found | Resource does not exist |
 | `409` | Conflict | Resource already exists |
 | `422` | Unprocessable Entity | Well-formed request, semantic validation failed |
@@ -70,7 +70,7 @@ Invalid input parameters or malformed requests.
 
 ### 401 Unauthorized
 
-Authentication required or invalid.
+The `Authorization` header is missing or malformed.
 
 ```json
 {
@@ -84,15 +84,14 @@ Authentication required or invalid.
 
 **Common scenarios:**
 
-- Missing `Authorization: Bearer $HYDRA_DB_API_KEY` header (or any `Authorization` header at all)
-- Invalid API key
-- Expired API key
+- Missing `Authorization` header entirely
+- Header present but missing the `Bearer` prefix or space
 
 ---
 
 ### 403 Forbidden
 
-Authenticated, but the request is not permitted.
+The API key is invalid, revoked, expired, or not authorized for the requested resource.
 
 ```json
 {
@@ -106,6 +105,8 @@ Authenticated, but the request is not permitted.
 
 **Common scenarios:**
 
+- Invalid or unrecognized API key
+- Revoked or expired API key
 - API key lacks required scopes
 - Tenant access restrictions
 - Cross-organization access attempts
