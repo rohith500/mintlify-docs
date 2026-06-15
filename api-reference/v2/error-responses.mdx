@@ -47,7 +47,7 @@ Use `error.code` for branching and log `meta.request_id` for every failed reques
 | `404` | Tenant, source, memory, or related resource was not found | No |
 | `409` | Conflict, usually an existing tenant or context item ID | Usually no |
 | `422` | Well-formed request that failed validation | No |
-| `429` | Rate limit exceeded | Yes, with backoff |
+| `429` | Rate limit exceeded | Yes, with backoff (check `Retry-After` header) |
 | `500` | Internal server error | Yes, with backoff |
 | `503` | Temporary service unavailability | Yes, with backoff |
 
@@ -73,6 +73,8 @@ Endpoint pages list the most common codes for that operation. New codes may be a
 ## Retry pattern
 
 Retry only transient failures: `429`, `500`, and `503`. Use exponential backoff with jitter and keep retries bounded.
+
+For `429` responses from query endpoints, check the `Retry-After` response header. When present, it indicates the number of seconds until the rate limit window resets. Prefer waiting the `Retry-After` duration before retrying.
 
 <CodeGroup>
 ```typescript TypeScript SDK

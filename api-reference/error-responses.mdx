@@ -205,7 +205,9 @@ Rate limit exceeded.
 
 **How to handle:**
 
-Implement exponential backoff. See [Retry pattern](#retry-pattern) below.
+For query rate limit errors, check the `Retry-After` response header. When present, it indicates the number of seconds until the rate limit window resets. Prefer waiting the `Retry-After` duration before retrying.
+
+For general rate limiting without a `Retry-After` header, implement exponential backoff. See [Retry pattern](#retry-pattern) below.
 
 For current rate limit values, contact [founders@hydradb.com](mailto:founders@hydradb.com).
 
