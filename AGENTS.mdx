@@ -1059,8 +1059,7 @@ Use `type: "memory"` to delete memory IDs.
 | Code | Meaning | Retry? |
 |---|---|---|
 | `400` | invalid parameters / malformed request | No |
-| `401` | missing/invalid API key | No |
-| `403` | authenticated but not permitted | No |
+| `403` | authentication or authorization failure (missing/malformed header, invalid/revoked/unknown key, or not permitted) | No |
 | `404` | tenant/context item/memory not found | No |
 | `409` | conflict, e.g. existing tenant or context item ID | Usually no |
 | `422` | semantic validation failure | No |
@@ -1073,8 +1072,7 @@ Use `type: "memory"` to delete memory IDs.
 | Code | Meaning |
 |---|---|
 | `INVALID_PARAMETERS` | required, malformed, or conflicting parameter |
-| `UNAUTHORIZED` | missing/invalid bearer token |
-| `FORBIDDEN` | key lacks access |
+| `FORBIDDEN` | missing/malformed bearer token, invalid/revoked/unknown key, or key lacks access |
 | `TENANT_ALREADY_EXISTS` | duplicate tenant ID |
 | `TENANT_NOT_FOUND` | tenant missing/not visible |
 | `SOURCE_NOT_FOUND` | context item or memory missing in selected scope |

@@ -34,8 +34,7 @@ Always read `detail.message` and `detail.error_code` for the actual error contex
 | `200` | OK | Success |
 | `202` | Accepted | Async operation queued (tenant creation, ingestion) |
 | `400` | Bad Request | Invalid input parameters |
-| `401` | Unauthorized | Invalid or unknown API key |
-| `403` | Forbidden | Missing or malformed `Authorization` header, or API key lacks permission |
+| `403` | Forbidden | Authentication or authorization failure (missing/malformed `Authorization` header, invalid/revoked/unknown API key, or insufficient permission) |
 | `404` | Not Found | Resource does not exist |
 | `409` | Conflict | Resource already exists |
 | `422` | Unprocessable Entity | Well-formed request, semantic validation failed |
@@ -68,36 +67,15 @@ Invalid input parameters or malformed requests.
 
 ---
 
-### 401 Unauthorized
+### 403 Forbidden
 
-The API key is invalid or unrecognized.
+HydraDB returns `403` for any authentication or authorization failure: a missing or malformed `Authorization` header, an invalid, revoked, or unrecognized API key, or a valid key that lacks permission for the requested resource.
 
 ```json
 {
   "detail": {
     "success": false,
     "message": "invalid API key",
-    "error_code": "UNAUTHORIZED"
-  }
-}
-```
-
-**Common scenarios:**
-
-- Invalid or unrecognized API key
-- Revoked or expired API key
-
----
-
-### 403 Forbidden
-
-The `Authorization` header is missing or malformed, or the API key lacks permission for the requested resource.
-
-```json
-{
-  "detail": {
-    "success": false,
-    "message": "Authorization header required",
     "error_code": "FORBIDDEN"
   }
 }
@@ -107,6 +85,7 @@ The `Authorization` header is missing or malformed, or the API key lacks permiss
 
 - Missing `Authorization` header entirely
 - Header present but missing the `Bearer` prefix
+- Invalid, unrecognized, or revoked API key
 - API key lacks required scopes
 - Tenant access restrictions
 - Cross-organization access attempts
@@ -395,8 +374,8 @@ try {
       case "RATE_LIMITED":
         // Back off and retry
         break;
-      case "UNAUTHORIZED":
-        // Refresh API key
+      case "FORBIDDEN":
+        // Check the Authorization header and API key
         break;
       default:
         // Generic error handling
@@ -422,8 +401,8 @@ except HydraDBError as e:
     elif e.error_code == "RATE_LIMITED":
         # Back off and retry
         pass
-    elif e.error_code == "UNAUTHORIZED":
-        # Refresh API key
+    elif e.error_code == "FORBIDDEN":
+        # Check the Authorization header and API key
         pass
     else:
         raise

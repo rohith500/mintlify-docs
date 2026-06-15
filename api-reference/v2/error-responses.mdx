@@ -42,8 +42,7 @@ Use `error.code` for branching and log `meta.request_id` for every failed reques
 | Code | Meaning | Retry? |
 |---|---|---|
 | `400` | Invalid parameters or malformed request | No |
-| `401` | Invalid or unknown API key | No |
-| `403` | Missing or malformed `Authorization` header, or API key lacks permission | No |
+| `403` | Authentication or authorization failure: missing/malformed `Authorization` header, invalid/revoked/unknown API key, or API key lacks permission | No |
 | `404` | Tenant, source, memory, or related resource was not found | No |
 | `409` | Conflict, usually an existing tenant or context item ID | Usually no |
 | `422` | Well-formed request that failed validation | No |
@@ -56,8 +55,7 @@ Use `error.code` for branching and log `meta.request_id` for every failed reques
 | Code | Typical status | Meaning |
 |---|---|---|
 | `INVALID_PARAMETERS` | `400` | A required parameter is missing, malformed, or mutually incompatible with another parameter. |
-| `UNAUTHORIZED` | `401` | The API key is invalid or unrecognized. |
-| `FORBIDDEN` | `403` | The `Authorization` header is missing or malformed, or the API key lacks permission for the requested resource. |
+| `FORBIDDEN` | `403` | Authentication or authorization failure: the `Authorization` header is missing or malformed, the API key is invalid, revoked, or unrecognized, or the key lacks permission for the requested resource. |
 | `TENANT_ALREADY_EXISTS` | `409` | `POST /tenants` received a `tenant_id` that is already in use. |
 | `TENANT_NOT_FOUND` | `404` | The requested tenant does not exist or is not visible to the current API key. |
 | `SOURCE_NOT_FOUND` | `404` | The requested source or memory ID does not exist in the selected tenant/sub-tenant. |

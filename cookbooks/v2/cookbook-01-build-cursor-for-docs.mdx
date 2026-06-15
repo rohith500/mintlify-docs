@@ -76,7 +76,7 @@ RECALL_MIN_SCORE   = 0.5
 RECALL_ALPHA       = 0.75
 ```
 
-> ❌ **Authorization header must be exact.** `Authorization: Bearer hdb_abc123` - capital B, one space, no quotes. Anything else returns 401.
+> ❌ **Authorization header must be exact.** `Authorization: Bearer hdb_abc123` - capital B, one space, no quotes. Anything else returns 403.
 
 ---
 
@@ -124,7 +124,7 @@ Polling for readiness...
 ✓ Tenant ready.
 ```
 
-**If it fails:** `401` - API key wrong or missing `Bearer ` prefix. Confirm `.env` has `HYDRA_DB_API_KEY=hdb_abc123` with no surrounding quotes.
+**If it fails:** `403` - API key wrong or missing `Bearer ` prefix. Confirm `.env` has `HYDRA_DB_API_KEY=hdb_abc123` with no surrounding quotes.
 
 ---
 
@@ -1267,9 +1267,9 @@ A good progression: Phase 0 search in the terminal → FastAPI `/ask` in Postman
 
 ## Troubleshooting
 
-### 401 - Not Authenticated
+### 403 - Not Authenticated
 
-**Cause:** The Authorization header is missing or malformed. Most common: the `Bearer ` prefix is absent, quotes surround the key in `.env`, or there is a leading/trailing space in the key value.
+**Cause:** The Authorization header is missing or malformed, or the API key is invalid. Most common: the `Bearer ` prefix is absent, quotes surround the key in `.env`, or there is a leading/trailing space in the key value.
 
 **Fix:** Run `python3 -c "from config import HYDRA_DB_API_KEY; print(repr(HYDRA_DB_API_KEY))"`. The output should be `'hdb_abc123'` - no surrounding spaces. Your header must be exactly `Authorization: Bearer hdb_abc123`.
 
