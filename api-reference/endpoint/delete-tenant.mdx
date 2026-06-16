@@ -79,7 +79,7 @@ response = client.tenant.delete_tenant(tenant_id="my_first_tenant")
 </Info>
 
 <Warning>
-**Mapping delete failures.** Deletion starts by removing the tenant's ID mapping. If that step fails, the endpoint returns `500` with `Failed to delete tenant mapping; tenant was not deleted. Retry the request.` The tenant stays registered and no background cleanup is scheduled, so its data is left intact. The request is safe to retry.
+**Delete failures leave the tenant intact.** Deletion starts by removing the tenant's ID mapping. If that step fails, the endpoint returns `500` and no background cleanup is scheduled. The tenant stays registered and its data is left untouched, so the request is safe to retry.
 </Warning>
 
 ## Related endpoints

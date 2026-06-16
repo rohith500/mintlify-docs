@@ -82,7 +82,7 @@ After deletion completes, the same `tenant_id` can be used in a new `POST /tenan
 
 ## Mapping delete failures
 
-Deletion starts by removing the tenant's ID mapping. If that step fails, HydraDB returns `500` with `Failed to delete tenant mapping; tenant was not deleted. Retry the request.` The tenant stays registered, continues to appear in `GET /tenants`, and no background cleanup is scheduled. This is deliberate: failing here keeps the tenant's vector stores, graphs, and storage objects intact while a mapping that still points to them remains. The request is safe to retry.
+Deletion starts by removing the tenant's ID mapping. If that step fails, HydraDB returns `500` and skips background cleanup: the tenant stays registered, continues to appear in `GET /tenants`, and its vector stores, graphs, and storage objects are left intact. This is deliberate  -  failing here avoids destroying a tenant's data while a mapping that still points to it remains. The request is safe to retry.
 
 ## Errors
 
