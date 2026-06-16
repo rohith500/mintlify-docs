@@ -4091,11 +4091,11 @@
             "required": false,
             "schema": {
               "type": "string",
-              "description": "Fetch mode: 'content', 'url', or 'both'",
-              "default": "content",
+              "description": "Fetch mode: 'content', 'url', or 'both'. Defaults to 'both', returning the source body and a presigned URL.",
+              "default": "both",
               "title": "Mode"
             },
-            "description": "Fetch mode: 'content', 'url', or 'both'"
+            "description": "Fetch mode: 'content', 'url', or 'both'. Defaults to 'both', returning the source body and a presigned URL."
           },
           {
             "name": "expiry_seconds",
@@ -9000,7 +9000,7 @@
           "mode": {
             "$ref": "#/components/schemas/FetchMode",
             "description": "Fetch mode: 'content' returns file content, 'url' returns presigned URL, 'both' returns both",
-            "default": "content"
+            "default": "both"
           },
           "expiry_seconds": {
             "type": "integer",
@@ -9055,6 +9055,18 @@
             ],
             "title": "Content Base64",
             "description": "File content as base64 encoded string (for binary files, if mode includes 'content')"
+          },
+          "inferred_content": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inferred Content",
+            "description": "Content produced by the inference stage, when available. Best-effort: null for sources ingested with infer=false and for upsert ingests whose temporary stage outputs were cleaned up."
           },
           "presigned_url": {
             "anyOf": [
@@ -9315,13 +9327,11 @@
                 "$ref": "#/components/schemas/V2SourceListResponse"
               },
               {
-                "$ref": "#/components/schemas/ListUserMemoriesResponse"
-              },
-              {
                 "type": "null"
               }
             ],
-            "title": "Data"
+            "title": "Data",
+            "description": "Uniform lean source listing for both knowledge and memory: each entry carries id, display fields, and metadata only. Body fields and inferred_content are served by /context/inspect."
           },
           "error": {
             "anyOf": [
@@ -10661,7 +10671,7 @@
               }
             ],
             "title": "Include Fields",
-            "description": "Optional list of source fields to include in the response. Allowed values: attachments, content, description, document_metadata, note, relations, tenant_metadata, timestamp, title, type, url."
+            "description": "Optional list of source fields to include in the response. Only applies to type=knowledge; ignored for type=memory. List responses are lean: the body fields content, description, url, attachments, and note are always stripped from the response even if requested here. Surfaceable fields are title, type, timestamp, tenant_metadata, document_metadata, additional_metadata, and relations. Use GET /context/inspect to read a source's body."
           }
         },
         "type": "object",
@@ -10894,6 +10904,18 @@
             ],
             "title": "Content Base64",
             "description": "File content as base64 (for binary files, if mode includes 'content')"
+          },
+          "inferred_content": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inferred Content",
+            "description": "Content produced by the inference stage, when available. Best-effort: null for sources ingested with infer=false and for upsert ingests whose temporary stage outputs were cleaned up."
           },
           "presigned_url": {
             "anyOf": [

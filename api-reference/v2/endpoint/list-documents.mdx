@@ -25,7 +25,7 @@ sources = client.context.list(
         "tenant_metadata": {"department": "legal"},
         "source_fields": {"type": "slack"},
     },
-    include_fields=["title", "type", "url", "timestamp"],
+    include_fields=["title", "type", "timestamp", "document_metadata"],
 )
 ```
 
@@ -39,7 +39,7 @@ const sources = await client.context.list({
     tenant_metadata: { department: "legal" },
     source_fields: { type: "slack" },
   },
-  includeFields: ["title", "type", "url", "timestamp"],
+  includeFields: ["title", "type", "timestamp", "document_metadata"],
 });
 ```
 
@@ -57,7 +57,7 @@ curl -X POST 'https://api.hydradb.com/context/list' \
       "tenant_metadata": { "department": "legal" },
       "source_fields": { "type": "slack" }
     },
-    "include_fields": ["title", "type", "url", "timestamp"]
+    "include_fields": ["title", "type", "timestamp", "document_metadata"]
   }'
 ```
 
@@ -100,11 +100,9 @@ curl -X POST 'https://api.hydradb.com/context/list' \
 
 ### 2. Including Fields for convenient data objects
 
-When you don't need every field on every row, pass `include_fields` to keep response payloads small. Only the listed fields are populated; omitted fields should be treated as unavailable in that response. `id`, `tenant_id`, and `sub_tenant_id` are always returned.
+When you don't need every field on every row, pass `include_fields` to keep response payloads small. Only the listed display and metadata fields are populated; treat any omitted field as unavailable in that response. `id`, `tenant_id`, and `sub_tenant_id` are always returned.
 
-Allowed values are `title`, `type`, `description`, `note`, `url`, `timestamp`, `content`, `tenant_metadata`, `document_metadata`, `attachments`, and `relations`. Omit or pass `null` to return everything.
-
-`include_fields` only applies to `type=knowledge`. It is ignored for `type=memory`.
+List responses are intentionally lean: the body fields `content`, `description`, `url`, `attachments`, and `note` are always stripped, even if you request them in `include_fields`. To read a source's body, call [`GET /context/inspect`](/api-reference/v2/endpoint/fetch-content). The fields you can surface in a list response are `title`, `type`, `timestamp`, `tenant_metadata`, `document_metadata`, `additional_metadata`, and `relations`. Omit `include_fields` or pass `null` to return the default lean set. `include_fields` only applies to `type=knowledge`; it is ignored for `type=memory`.
 
 <ResponseExample>
 
@@ -121,8 +119,10 @@ Allowed values are `title`, `type`, `description`, `note`, `url`, `timestamp`, `
         "sub_tenant_id": "team_docs",
         "title": "Compliance Policy",
         "type": "pdf",
-        "url": null,
-        "timestamp": "2026-05-12T08:14:00Z"
+        "timestamp": "2026-05-12T08:14:00Z",
+        "document_metadata": { "department": "legal" },
+        "additional_metadata": { "author": "Alice Smith" },
+        "tenant_metadata": { "region": "US" }
       }
     ],
     "total": 318,
@@ -148,11 +148,15 @@ Allowed values are `title`, `type`, `description`, `note`, `url`, `timestamp`, `
   "success": true,
   "data": {
     "success": true,
-    "user_memories": [
+    "message": "Successfully fetched sources",
+    "sources": [
       {
-        "memory_id": "mem_user_alex_tone",
-        "memory_content": "Prefers concise answers and dark mode.",
-        "inferred_content": "User prefers concise answers and dark mode."
+        "id": "mem_user_alex_tone",
+        "tenant_id": "acme_corp",
+        "sub_tenant_id": "user_alex",
+        "title": "Tone preference",
+        "type": "memory",
+        "timestamp": "2026-05-12T08:14:00Z"
       }
     ],
     "total": 1,
@@ -190,7 +194,7 @@ Allowed values are `title`, `type`, `description`, `note`, `url`, `timestamp`, `
 
 </ResponseExample>
 
-When `type=memory`, `data` is a `ListUserMemoriesResponse` instead  -  same idea but with a `data.user_memories[]` array of memory items.
+`type=memory` returns the same lean `data.sources[]` shape as `type=knowledge`  -  each entry carries `id`, display fields (`title`, `type`, `timestamp`), and metadata only. Memory bodies and inferred content are no longer included in list responses; fetch them per source with [`GET /context/inspect`](/api-reference/v2/endpoint/fetch-content), which returns `content` and `inferred_content`.
 
 <Warning>
   **Undeclared filter keys are silent.** Keys in `filters.tenant_metadata` that are not declared in `tenant_metadata_schema` are silently ignored. If a filter doesn't narrow results as expected, verify the schema field exists and has `enable_match: true`
