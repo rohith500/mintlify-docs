@@ -214,6 +214,95 @@ curl -X POST 'https://api.hydradb.com/context/ingest' \
 
 </RequestExample>
 
+## Upload in-memory text as a `.txt` file
+
+If you already have text in memory, create a file-like object and upload it through `documents` as a `text/plain` `.txt` file.
+
+<CodeGroup>
+```python Python SDK
+import io
+import json
+
+text = """Q4 planning notes
+
+- Launch checklist is owned by Priya.
+- Legal review is due by Friday.
+"""
+
+# Create a file-like object in memory. No local .txt file is required.
+txt_file = io.BytesIO(text.encode("utf-8"))
+
+response = client.context.ingest(
+    type="knowledge",
+    tenant_id="acme_corp",
+    sub_tenant_id="team_docs",
+    documents=[("meeting-notes.txt", txt_file, "text/plain")],
+    document_metadata=json.dumps([
+        {"id": "meeting_notes_q4", "metadata": {"department": "product"}}
+    ]),
+)
+```
+
+```typescript TypeScript SDK
+const text = `Q4 planning notes
+
+- Launch checklist is owned by Priya.
+- Legal review is due by Friday.
+`;
+
+const response = await client.context.ingest({
+  type: "knowledge",
+  tenantId: "acme_corp",
+  subTenantId: "team_docs",
+  documents: [
+    {
+      filename: "meeting-notes.txt",
+      contentType: "text/plain",
+      data: Buffer.from(text, "utf-8"),
+    },
+  ],
+  documentMetadata: JSON.stringify([
+    { id: "meeting_notes_q4", metadata: { department: "product" } },
+  ]),
+});
+```
+
+```python API
+import io
+import json
+import requests
+
+text = """Q4 planning notes
+
+- Launch checklist is owned by Priya.
+- Legal review is due by Friday.
+"""
+
+# Create a file-like object in memory. No local .txt file is required.
+txt_file = io.BytesIO(text.encode("utf-8"))
+
+response = requests.post(
+    "https://api.hydradb.com/context/ingest",
+    headers={
+        "Authorization": "Bearer <your_api_key>",
+        "API-Version": "2",
+    },
+    data={
+        "type": "knowledge",
+        "tenant_id": "acme_corp",
+        "sub_tenant_id": "team_docs",
+        "document_metadata": json.dumps([
+            {"id": "meeting_notes_q4", "metadata": {"department": "product"}}
+        ]),
+    },
+    files={
+        "documents": ("meeting-notes.txt", txt_file, "text/plain"),
+    },
+)
+response.raise_for_status()
+```
+</CodeGroup>
+
 ## Important form fields
 
 | Name | Description |
@@ -226,7 +315,7 @@ curl -X POST 'https://api.hydradb.com/context/ingest' \
 | <Field name="document_metadata" type="string (JSON array)" /> | One entry per file in `documents`, in the same order. If omitted, documents index with inferred defaults such as filename/title. See the item shape below. |
 | <Field name="app_knowledge" type="string (JSON object or array)" /> | Pre-extracted source objects (Slack, Notion, web pages, etc.), **knowledge only**. See the `app_knowledge` item shape below. |
 | <Field name="memories" type="string (JSON array)" /> | Memory items, **memory only**. Required and non-empty when `type=memory`. Use plural `memories` for the form field, even though `type` is singular `memory`. See the `memories` item shape below. |
-| <Field name="graph_payload" type="string (JSON object)" /> | Optional custom knowledge graph to attach to the document, **knowledge only**. When provided, HydraDB uses your graph instead of extracting one automatically. Requires exactly one document and cannot be combined with `app_knowledge`. See [Custom graph ingestion](#custom-graph-ingestion) below. |
+| <Field name="graph_payload" type="string (JSON object)" /> | Optional custom knowledge graphs, keyed by source ID. A map of `source_id` → `{ entities, relations }`, where each key matches a `document_metadata` id, an `app_knowledge` item id, or a memory id in the same request. Supplying a graph replaces automatic extraction for that source. This top-level field is the only way to attach a graph; graphs embedded in `document_metadata`, `app_knowledge`, or `memories` are ignored. See [Custom graph ingestion](#custom-graph-ingestion) below. |
 
 ## Common use-cases and their configurations
 
@@ -511,33 +600,41 @@ Per-document metadata (`id`, `metadata`, `additional_metadata`, `title`, etc.) c
 
 ## Custom graph ingestion
 
-Use `graph_payload` to supply your own knowledge graph instead of relying on automatic extraction. Helpful when you have pre-existing structured relationships or need precise control over entity and relation representation.
+Use `graph_payload` to supply your own knowledge graphs instead of relying on HydraDB's automatic extraction. This is useful when you already have structured relationships, or when you need precise control over how entities and relations are represented.
 
-<Accordion title="5. Custom graph - supply your own entities and relations">
+`graph_payload` is a map keyed by source ID. Each key matches a source you're ingesting in the same request—a `document_metadata` id, an `app_knowledge` item id, or a memory id—and its value is the graph for that source. You can attach a graph to one source, several, or all of them in a single request, mixing documents, app sources, and memories freely. Any source without an entry in the map falls back to automatic extraction as usual.
+
+<Accordion title="5. Custom graphs - supply your own entities and relations">
   <CodeGroup>
 
   ```python Python SDK
   import json
 
-  with open("/path/to/document.pdf", "rb") as doc:
+  with open("/path/to/onboarding.pdf", "rb") as doc:
       result = client.context.ingest(
           type="knowledge",
           tenant_id="acme_corp",
           sub_tenant_id="team_docs",
-          documents=[("document.pdf", doc, "application/pdf")],
+          documents=[("onboarding.pdf", doc, "application/pdf")],
+          document_metadata=json.dumps([{"id": "onboarding_runbook"}]),
+
+          # Keyed by source id: "onboarding_runbook" matches the document_metadata id above.
           graph_payload=json.dumps({
-              "entities": {
-                  "e1": {"name": "John Doe", "type": "PERSON", "namespace": "employees"},
-                  "e2": {"name": "Acme Corp", "type": "ORGANIZATION", "namespace": "organizations"}
-              },
-              "relations": [
-                  {
-                      "source": "e1",
-                      "target": "e2",
-                      "predicate": "WORKS_FOR",
-                      "context": "John Doe leads the payments team at Acme Corp."
-                  }
-              ]
+              "onboarding_runbook": {
+                  "entities": {
+                      "alice": {"name": "Alice Carter", "type": "PERSON", "namespace": "employees"},
+                      "bob": {"name": "Bob Lee", "type": "PERSON", "namespace": "employees"},
+                  },
+                  "relations": [
+                      {
+                          "source": "alice",
+                          "target": "bob",
+                          "predicate": "MENTORS",
+                          "context": "Alice Carter mentors Bob Lee on Project Atlas onboarding.",
+                          "temporal_details": "since 2023",
+                      }
+                  ],
+              }
           }),
       )
   ```
@@ -548,21 +645,27 @@ Use `graph_payload` to supply your own knowledge graph instead of relying on aut
     tenantId: "acme_corp",
     subTenantId: "team_docs",
     documents: [
-      { path: "/path/to/document.pdf", filename: "document.pdf", contentType: "application/pdf" },
+      { path: "/path/to/onboarding.pdf", filename: "onboarding.pdf", contentType: "application/pdf" },
     ],
+    documentMetadata: JSON.stringify([{ id: "onboarding_runbook" }]),
+
+    // Keyed by source id: "onboarding_runbook" matches the documentMetadata id above.
     graphPayload: JSON.stringify({
-      entities: {
-        e1: { name: "John Doe", type: "PERSON", namespace: "employees" },
-        e2: { name: "Acme Corp", type: "ORGANIZATION", namespace: "organizations" },
-      },
-      relations: [
-        {
-          source: "e1",
-          target: "e2",
-          predicate: "WORKS_FOR",
-          context: "John Doe leads the payments team at Acme Corp.",
+      onboarding_runbook: {
+        entities: {
+          alice: { name: "Alice Carter", type: "PERSON", namespace: "employees" },
+          bob: { name: "Bob Lee", type: "PERSON", namespace: "employees" },
         },
-      ],
+        relations: [
+          {
+            source: "alice",
+            target: "bob",
+            predicate: "MENTORS",
+            context: "Alice Carter mentors Bob Lee on Project Atlas onboarding.",
+            temporal_details: "since 2023",
+          },
+        ],
+      },
     }),
   });
   ```
@@ -574,20 +677,24 @@ Use `graph_payload` to supply your own knowledge graph instead of relying on aut
     -F "type=knowledge" \
     -F "tenant_id=acme_corp" \
     -F "sub_tenant_id=team_docs" \
-    -F "documents=@/path/to/document.pdf" \
+    -F "documents=@/path/to/onboarding.pdf" \
+    -F 'document_metadata=[{ "id": "onboarding_runbook" }]' \
     -F 'graph_payload={
-      "entities": {
-        "e1": { "name": "John Doe", "type": "PERSON", "namespace": "employees" },
-        "e2": { "name": "Acme Corp", "type": "ORGANIZATION", "namespace": "organizations" }
-      },
-      "relations": [
-        {
-          "source": "e1",
-          "target": "e2",
-          "predicate": "WORKS_FOR",
-          "context": "John Doe leads the payments team at Acme Corp."
-        }
-      ]
+      "onboarding_runbook": {
+        "entities": {
+          "alice": { "name": "Alice Carter", "type": "PERSON", "namespace": "employees" },
+          "bob": { "name": "Bob Lee", "type": "PERSON", "namespace": "employees" }
+        },
+        "relations": [
+          {
+            "source": "alice",
+            "target": "bob",
+            "predicate": "MENTORS",
+            "context": "Alice Carter mentors Bob Lee on Project Atlas onboarding.",
+            "temporal_details": "since 2023"
+          }
+        ]
+      }
     }'
   ```
 
@@ -597,50 +704,64 @@ Use `graph_payload` to supply your own knowledge graph instead of relying on aut
 
   | Field | Description |
   | --- | --- |
-  | <Field name="entities" type="object" required /> | Map of entity keys to entity objects. Keys are local identifiers used to reference entities in `relations`. |
-  | <Field name="relations" type="array" required /> | Array of relation objects connecting entities. |
+  | <Field name="<source_id>" type="object" required /> | Each top-level key is a source ID matching a `document_metadata` id, `app_knowledge` item id, or memory id in the same request. The value is the graph `{ entities, relations }` for that source. A key matching no source returns `400`. |
+
+  Each graph value has two fields:
+
+  | Field | Description |
+  | --- | --- |
+  | <Field name="entities" type="object" required /> | Map of entity keys to entity objects. Keys are local identifiers used to reference entities from `relations`. Must be non-empty. |
+  | <Field name="relations" type="array" required /> | Array of relation objects connecting entities. Must be non-empty. |
 
   ### Entity object
 
   | Field | Description |
   | --- | --- |
-  | <Field name="name" type="string" required /> | Entity name. Max 256 characters. |
+  | <Field name="name" type="string" required /> | Entity name. Normalized server-side as the query join key. Max 256 characters. |
   | <Field name="type" type="string" /> | Entity type (e.g., `"PERSON"`, `"ORGANIZATION"`, `"PRODUCT"`). Max 256 characters. |
   | <Field name="namespace" type="string" /> | Logical grouping for the entity. Max 256 characters. |
-  | <Field name="identifier" type="string" /> | Optional external identifier (e.g., a URL or database ID). |
+  | <Field name="identifier" type="string" /> | Optional external identifier (e.g., a URL or database ID). Max 256 characters. |
 
   ### Relation object
 
   | Field | Description |
   | --- | --- |
-  | <Field name="source" type="string" required /> | Key of the source entity in the `entities` map. |
-  | <Field name="target" type="string" required /> | Key of the target entity in the `entities` map. |
+  | <Field name="source" type="string" required /> | Key of the source entity in the `entities` map. Must reference a declared entity. |
+  | <Field name="target" type="string" required /> | Key of the target entity in the `entities` map. Must reference a declared entity. |
   | <Field name="predicate" type="string" required /> | Relationship type (e.g., `"WORKS_FOR"`, `"MENTORS"`, `"DEPENDS_ON"`). Max 256 characters. |
-  | <Field name="context" type="string" /> | Contextual description of the relationship. Max 2000 characters. |
+  | <Field name="context" type="string" /> | Contextual description of the relationship. Max 2,000 characters. |
+  | <Field name="temporal_details" type="string" /> | Optional free-text time qualifier for the relationship (e.g., `"since 2023"`). Max 256 characters. |
 
-  ### Constraints
+  ### Validation
 
-  - **Single document only.** `graph_payload` requires exactly one document. Multi-document uploads are not supported.
-  - **Cannot combine with `app_knowledge`.** Use either `graph_payload` with `documents` or `app_knowledge` alone.
-  - **Non-empty graph required.** Both `entities` and `relations` must have at least one entry.
-  - **Referential integrity.** All `source` and `target` values in relations must reference keys declared in `entities`.
+  A `graph_payload` is validated before any source is ingested, so a bad graph never causes a partial ingest. A request returns `400` when:
+
+  - The `graph_payload` value is not valid JSON.
+  - A top-level key matches no source ID in the request (so a typo never silently drops a graph).
+  - `entities` or `relations` is empty for any supplied graph.
+  - A relation's `source` or `target` does not reference a declared entity key (referential integrity).
+  - A required field is missing (`name` on an entity, `source`/`target`/`predicate` on a relation).
+  - Any field exceeds its length cap, or a graph exceeds the count or degree limits below.
 
   ### Limits
 
   | Limit | Value |
   | --- | --- |
-  | Max entities | 5,000 |
-  | Max relations | 10,000 |
-  | Max relations per entity | 500 |
-  | Entity name/type/namespace max length | 256 characters |
+  | Max entities per graph | 5,000 |
+  | Max relations per graph | 10,000 |
+  | Max relations per entity (degree) | 500 |
+  | Entity key, name, type, namespace, identifier max length | 256 characters |
   | Predicate max length | 256 characters |
+  | `temporal_details` max length | 256 characters |
   | Context max length | 2,000 characters |
 
   ### Behavior
 
-  - The supplied graph **replaces** automatic extraction for this document.
-  - The graph is stored durably and survives document re-ingestion—if you re-upload the same document without `graph_payload`, the original graph remains intact.
-  - Graph relationships surface in query responses when `graph_context=true`.
+  - **Replaces automatic extraction.** For a source with a supplied graph, HydraDB uses your entities and relations instead of extracting them from the content.
+  - **Only ingress is `graph_payload`.** Graphs embedded in `document_metadata`, `app_knowledge`, or `memories` are ignored. The top-level `graph_payload` form field is the only supported way to attach a graph.
+  - **Durable across re-ingestion.** The supplied graph is stored durably. Re-ingesting the same source *without* `graph_payload` preserves the original graph rather than reverting to automatic extraction.
+  - **Surfaces at query time.** Custom graph relationships appear in [Query](/api-reference/v2/endpoint/query) responses under `graph_context` when `graph_context: true`.
+  - **Works for memories too.** Set `type=memory` and key the map by each memory's `id`; the memory must carry an explicit `id` to be a graph target.
 </Accordion>
 
 ## Some important notes

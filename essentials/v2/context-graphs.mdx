@@ -37,10 +37,10 @@ Skip them for direct factual lookups. Graph traversal adds response size and can
 
 Context graphs are hybrid: relationships are extracted at ingestion time and traversed at query time.
 
-**At ingestion**, HydraDB extracts relationships from your data and stores them in the graph. You have two additional options for relationship data:
+**At ingestion**, HydraDB extracts relationships from your data and stores them in the graph. Two payloads give you more control over relationship data:
 
 - **Forceful relations.** Declare explicit relationships to other sources via a `relations` payload.
-- **Custom graphs.** Supply your own entities and relations via `graph_payload` to replace automatic extraction entirely. See [Custom graph ingestion](/api-reference/v2/endpoint/ingest-context#custom-graph-ingestion).
+- **Custom graphs.** Supply your own entities and relations for a source via `graph_payload` to replace automatic extraction for that source. This works for documents, app sources, and memories. See [Custom graph ingestion](/api-reference/v2/endpoint/ingest-context#custom-graph-ingestion).
 
 **At query**, when `graph_context: true` is set (the default):
 
