@@ -80,9 +80,13 @@ After deletion completes, the same `tenant_id` can be used in a new `POST /tenan
 - **Async cleanup:** The endpoint returns immediately after deregistering the tenant. Infrastructure cleanup of vector stores, graphs, and storage objects runs in the background and may take a few minutes to complete.
 - **Repeat calls:** Deleting an already-deleted tenant returns `404 TENANT_NOT_FOUND`. Deleting a tenant that is still provisioning or deleting is treated as a request to tear down that tenant.
 
+## Mapping delete failures
+
+Deletion starts by removing the tenant's ID mapping. If that step fails, HydraDB returns `500` with `Failed to delete tenant mapping; tenant was not deleted. Retry the request.` The tenant stays registered, continues to appear in `GET /tenants`, and no background cleanup is scheduled. This is deliberate: failing here keeps the tenant's vector stores, graphs, and storage objects intact while a mapping that still points to them remains. The request is safe to retry.
+
 ## Errors
 
-Common codes: `404 TENANT_NOT_FOUND`, `401 UNAUTHORIZED`, `422 VALIDATION_ERROR`. See [Error Responses](/api-reference/v2/error-responses) for the full list.
+Common codes: `404 TENANT_NOT_FOUND`, `401 UNAUTHORIZED`, `422 VALIDATION_ERROR`, `500 INTERNAL_ERROR`. See [Error Responses](/api-reference/v2/error-responses) for the full list.
 
 <div className="api-before-related-resources" />
 

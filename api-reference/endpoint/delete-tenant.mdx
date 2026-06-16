@@ -78,6 +78,10 @@ response = client.tenant.delete_tenant(tenant_id="my_first_tenant")
 **Re-creation.** Once deletion is scheduled, re-creating a tenant with the same `tenant_id` may fail until cleanup completes. If you need to re-create immediately, use a different `tenant_id`.
 </Info>
 
+<Warning>
+**Mapping delete failures.** Deletion starts by removing the tenant's ID mapping. If that step fails, the endpoint returns `500` with `Failed to delete tenant mapping; tenant was not deleted. Retry the request.` The tenant stays registered and no background cleanup is scheduled, so its data is left intact. The request is safe to retry.
+</Warning>
+
 ## Related endpoints
 
 - **Before this:** [List data](/api-reference/endpoint/list-data) – confirm what's stored before deleting
@@ -85,4 +89,4 @@ response = client.tenant.delete_tenant(tenant_id="my_first_tenant")
 
 ## Errors
 
-Common codes: `400 INVALID_PARAMETERS`, `404 TENANT_NOT_FOUND`. See [Error Responses](/api-reference/error-responses) for the full list.
+Common codes: `400 INVALID_PARAMETERS`, `404 TENANT_NOT_FOUND`, `500 INTERNAL_ERROR`. See [Error Responses](/api-reference/error-responses) for the full list.
