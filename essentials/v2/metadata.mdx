@@ -98,7 +98,7 @@ Field names that would generate conflicting derived fields are rejected. For exa
 | Custom fields per tenant | 32 fields max |
 | `max_length` for VARCHAR fields | 1–65,535 (default: 1,024) |
 
-This limit includes the base schema plus derived fields (up to 3 per searchable field) that HydraDB generates internally.
+The 32-field cap counts only the custom fields you declare in `tenant_metadata_schema`. HydraDB provisions its own base-schema fields separately, plus up to 3 derived fields per searchable field. The cap keeps that combined total within the underlying vector store's limit of 64 fields per collection.
 
 ---
 
