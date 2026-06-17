@@ -193,10 +193,6 @@ If either condition is missing, the fields return as empty arrays. See [Essentia
 
 Common codes: `400 INVALID_PARAMETERS`, `404 TENANT_NOT_FOUND`, `422 VALIDATION_ERROR`, `429 RATE_LIMITED`. See [Error Responses](/api-reference/error-responses) for the full list.
 
-<Note>
-Recall endpoints may enforce per-API-key rate limits. When exceeded, the API returns HTTP 429 with a `Retry-After` header indicating the seconds until the rate limit window resets (e.g., "Query rate limit exceeded: max 120 requests per minute"). Wait for the `Retry-After` duration or use exponential backoff for retries.
-</Note>
-
 Read more: [Essentials → Recall](/essentials/recall) · [Essentials → Context Graphs](/essentials/context-graphs)
 
 ## How to use API Results

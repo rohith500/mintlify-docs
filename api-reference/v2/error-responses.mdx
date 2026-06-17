@@ -62,7 +62,7 @@ Use `error.code` for branching and log `meta.request_id` for every failed reques
 | `TENANT_NOT_FOUND` | `404` | The requested tenant does not exist or is not visible to the current API key. |
 | `SOURCE_NOT_FOUND` | `404` | The requested source or memory ID does not exist in the selected tenant/sub-tenant. |
 | `VALIDATION_ERROR` | `422` | The request shape was valid JSON/form data, but one or more fields failed semantic validation. |
-| `RATE_LIMITED` | `429` | The API key exceeded its current rate limit. Query endpoints (`/query`, `/recall/*`) may return a per-minute rate limit message when query rate limiting is active. |
+| `RATE_LIMITED` | `429` | The API key exceeded its current rate limit. The query endpoint (`/query`) may enforce a per-API-key request limit when query rate limiting is enabled. |
 | `INTERNAL_ERROR` | `500` | HydraDB hit an unexpected server-side error. |
 | `SERVICE_UNAVAILABLE` | `503` | A dependency is temporarily unavailable or the service is under load. |
 

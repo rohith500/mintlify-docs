@@ -194,20 +194,11 @@ Rate limit exceeded.
 
 **When it occurs:**
 
-- **General rate limiting:** All API endpoints may return 429 under sustained load.
-- **Query rate limiting:** Recall endpoints (`/recall/full_recall`, `/recall/recall_preferences`, `/recall/boolean_recall`) may enforce a per-API-key request rate limit. When exceeded, the response includes a specific message:
-
-```json
-{
-  "detail": "Query rate limit exceeded: max 120 requests per minute. Please retry shortly."
-}
-```
+Currently documented on recall endpoints (`/recall/full_recall`, `/recall/recall_preferences`, `/recall/boolean_recall`). Other endpoints may also return 429 under sustained load.
 
 **How to handle:**
 
-For query rate limit errors, check the `Retry-After` response header. When present, it indicates the number of seconds until the rate limit window resets. Prefer waiting the `Retry-After` duration before retrying.
-
-For general rate limiting without a `Retry-After` header, implement exponential backoff. See [Retry pattern](#retry-pattern) below.
+Implement exponential backoff. See [Retry pattern](#retry-pattern) below.
 
 For current rate limit values, contact [founders@hydradb.com](mailto:founders@hydradb.com).
 
