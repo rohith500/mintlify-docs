@@ -196,6 +196,10 @@ List responses are intentionally lean: the body fields `content`, `description`,
 
 `type=memory` returns the same lean `data.sources[]` shape as `type=knowledge`  -  each entry carries `id`, display fields (`title`, `type`, `timestamp`), and metadata only. Memory bodies and inferred content are no longer included in list responses; fetch them per source with [`GET /context/inspect`](/api-reference/v2/endpoint/fetch-content), which returns `content` and `inferred_content`.
 
+<Note>
+  **Degraded memory store.** When the memory store is temporarily unavailable, a `type=memory` list still returns `success: true` with an empty `sources` array, but its `message` is `"Memories temporarily unavailable"` rather than `"Successfully fetched sources"`. Check the `message` field to tell a transient outage apart from a genuinely empty result, and retry instead of treating it as "no memories".
+</Note>
+
 <Warning>
   **Undeclared filter keys are silent.** Keys in `filters.tenant_metadata` that are not declared in `tenant_metadata_schema` are silently ignored. If a filter doesn't narrow results as expected, verify the schema field exists and has `enable_match: true`
 </Warning>
