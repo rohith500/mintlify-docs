@@ -41,9 +41,10 @@ Defined once in `tenant_metadata_schema` on [`POST /tenants`](/api-reference/v2/
 | `enable_match` | boolean | Set `true` to use this field as a scope key in `metadata_filters`. Default: `false`. |
 | `enable_dense_embedding` | boolean | Index this `VARCHAR` field for semantic similarity search. Default: `false`. |
 | `enable_sparse_embedding` | boolean | Index this `VARCHAR` field for BM25 keyword search. Default: `false`. |
-| `max_length` | integer | Max length for string fields. Default: `1024`. Increase for long text. |
-| `searchable` *(shorthand)* | boolean | Equivalent to `enable_dense_embedding: true` + `enable_sparse_embedding: true`. |
-| `filterable` *(shorthand)* | boolean | Equivalent to `enable_match: true`. |
+| `max_length` | integer | Max length for `VARCHAR` fields, `1`–`65535`. Default: `1024`. Increase for long text. Only applies to `VARCHAR` fields. |
+| `enable_analyzer` | boolean | Enable the text analyzer on this `VARCHAR` field. Default: `false`. |
+| `searchable` *(shorthand)* | boolean | Accepted for compatibility, but does **not** enable embedding indexes on its own. To make a field searchable, set `enable_dense_embedding` and/or `enable_sparse_embedding` explicitly — an explicit flag always takes precedence over this shorthand. |
+| `filterable` *(shorthand)* | boolean | Equivalent to `enable_match: true` (when `enable_match` isn't set explicitly). |
 
 ### Ingest-time metadata (per source)
 
