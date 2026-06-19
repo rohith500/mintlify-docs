@@ -22,10 +22,10 @@ sources = client.context.list(
     page=1,
     page_size=50,
     filters={
-        "tenant_metadata": {"department": "legal"},
+        "metadata": {"department": "legal"},
         "source_fields": {"type": "slack"},
     },
-    include_fields=["title", "type", "timestamp", "document_metadata"],
+    include_fields=["title", "type", "timestamp", "additional_metadata"],
 )
 ```
 
@@ -36,10 +36,10 @@ const sources = await client.context.list({
   page: 1,
   pageSize: 50,
   filters: {
-    tenant_metadata: { department: "legal" },
+    metadata: { department: "legal" },
     source_fields: { type: "slack" },
   },
-  includeFields: ["title", "type", "timestamp", "document_metadata"],
+  includeFields: ["title", "type", "timestamp", "additional_metadata"],
 });
 ```
 
@@ -54,10 +54,10 @@ curl -X POST 'https://api.hydradb.com/context/list' \
     "page": 1,
     "page_size": 50,
     "filters": {
-      "tenant_metadata": { "department": "legal" },
+      "metadata": { "department": "legal" },
       "source_fields": { "type": "slack" }
     },
-    "include_fields": ["title", "type", "timestamp", "document_metadata"]
+    "include_fields": ["title", "type", "timestamp", "additional_metadata"]
   }'
 ```
 
@@ -85,7 +85,7 @@ curl -X POST 'https://api.hydradb.com/context/list' \
 ```json
 {
   "filters": {
-    "tenant_metadata": { "department": "Finance", "region": "US" },
+    "metadata": { "department": "Finance", "region": "US" },
     "additional_metadata": { "author": "Alice Smith" },
     "source_fields": { "type": "slack", "title": "standup notes" }
   }
@@ -94,7 +94,7 @@ curl -X POST 'https://api.hydradb.com/context/list' \
 
 | Category | Matched against | Notes |
 | --- | --- | --- |
-| <Field name="tenant_metadata" type="object" /> | Context item's schema-aligned `metadata` payload | Keys must be declared in the tenant's `tenant_metadata_schema` with `enable_match: true`. Undeclared keys are silently ignored. |
+| <Field name="metadata" type="object" /> | Context item's schema-aligned `metadata` payload | Keys must be declared in the tenant's `tenant_metadata_schema` with `enable_match: true`. Undeclared keys are silently ignored. |
 | <Field name="additional_metadata" type="object" /> | Context item's `additional_metadata` payload | Free-form per-document JSON. No schema declaration required. |
 | <Field name="source_fields" type="object" /> | Built-in source fields (`type`, `title`, `description`, `url`, `timestamp`) | Use for app-source categories or quick title lookups. |
 
@@ -102,7 +102,13 @@ curl -X POST 'https://api.hydradb.com/context/list' \
 
 When you don't need every field on every row, pass `include_fields` to keep response payloads small. Only the listed display and metadata fields are populated; treat any omitted field as unavailable in that response. `id`, `tenant_id`, and `sub_tenant_id` are always returned.
 
-List responses are intentionally lean: the body fields `content`, `description`, `url`, `attachments`, and `note` are always stripped, even if you request them in `include_fields`. To read a source's body, call [`GET /context/inspect`](/api-reference/v2/endpoint/fetch-content). The fields you can surface in a list response are `title`, `type`, `timestamp`, `tenant_metadata`, `document_metadata`, `additional_metadata`, and `relations`. Omit `include_fields` or pass `null` to return the default lean set. `include_fields` only applies to `type=knowledge`; it is ignored for `type=memory`.
+List responses are intentionally lean: the body fields `content`, `url`, and `attachments` are always stripped, even if you request them in `include_fields`. To read a source's body, call [`GET /context/inspect`](/api-reference/v2/endpoint/fetch-content). The fields you can surface in a list response are `title`, `type`, `description`, `note`, `timestamp`, `metadata`, `additional_metadata`, and `relations`. Omit `include_fields` or pass `null` to return the default lean set.
+
+<Note>
+  **Projectable vs. fetchable fields.** `content`, `url`, and `attachments` are **not** valid `include_fields` values  -  they are stripped from list responses, and requesting one returns `400`. Fetch them per-source via [Inspect Context](/api-reference/v2/endpoint/fetch-content).
+</Note>
+
+`include_fields` only applies to `type=knowledge`. It is ignored for `type=memory`.
 
 <ResponseExample>
 
@@ -120,9 +126,8 @@ List responses are intentionally lean: the body fields `content`, `description`,
         "title": "Compliance Policy",
         "type": "pdf",
         "timestamp": "2026-05-12T08:14:00Z",
-        "document_metadata": { "department": "legal" },
-        "additional_metadata": { "author": "Alice Smith" },
-        "tenant_metadata": { "region": "US" }
+        "metadata": { "department": "legal", "region": "US" },
+        "additional_metadata": { "author": "Alice Smith" }
       }
     ],
     "total": 318,
@@ -201,7 +206,7 @@ List responses are intentionally lean: the body fields `content`, `description`,
 </Note>
 
 <Warning>
-  **Undeclared filter keys are silent.** Keys in `filters.tenant_metadata` that are not declared in `tenant_metadata_schema` are silently ignored. If a filter doesn't narrow results as expected, verify the schema field exists and has `enable_match: true`
+  **Undeclared filter keys are silent.** Keys in `filters.metadata` that are not declared in `tenant_metadata_schema` are silently ignored. If a filter doesn't narrow results as expected, verify the schema field exists and has `enable_match: true`
 </Warning>
 
 
